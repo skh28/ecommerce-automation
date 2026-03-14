@@ -29,9 +29,10 @@ export default defineConfig({
       testMatch: /.*\/api\/.*\.spec\.ts/,
       use: { baseURL: apiBaseUrl || 'http://localhost' },
     },
-    // Browser tests (existing)
+    // Browser tests (exclude API tests; those run only in the api project)
     {
       name: 'chromium',
+      testIgnore: /\/api\//,
       use: { ...devices['Desktop Chrome'] },
     },
 

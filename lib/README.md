@@ -1,24 +1,30 @@
 # API automation framework (lib)
 
-Reusable pieces for ecommerce API tests. Use these from specs and fixtures so endpoint and config changes stay in one place.
+Reusable layer aligned with the **ecommerce API spec** (base `http://localhost:3000/api`, session auth via NextAuth).
 
 ## Layout
 
-- **`config/env.ts`** – Single source for env: `apiBaseUrl`, `apiToken`, `isApiConfigured()`. Loads `.env` from project root.
-- **`api/client.ts`** – Default headers and request options (e.g. auth, JSON). Use when building custom API calls.
-- **`api/types.ts`** – Shared TypeScript types (e.g. `Product`, `ApiSuccess`, `PaginatedResponse`). Align with your API contracts.
-- **`api/resources/`** – Endpoint helpers (health, products, etc.). Each module exposes functions that take `request` and return Playwright `APIResponse`. Add new resources (cart, orders, auth) here.
+- **`config/env.ts`** – `apiBaseUrl`, `apiToken`, `isApiConfigured()`. Base URL is the origin only (e.g. `http://localhost:3000`); routes use `/api` prefix in code.
+- **`api/constants.ts`** – `API_PREFIX = '/api'` for all spec routes.
+- **`api/types.ts`** – Spec-aligned types: `Product`, `CartResponse`, `OrderDetailResponse`, `SignupRequest`, etc. IDs are CUIDs; money in cents; dates ISO 8601.
+- **`api/client.ts`** – Default headers and request options (auth, JSON).
+- **`api/resources/`** – Endpoint helpers:
+  - **auth** – `POST /api/auth/signup`
+  - **products** – `GET /api/products`, `GET /api/products/[id]`
+  - **cart** – `GET/POST /api/cart`, `PATCH/DELETE /api/cart/items/[itemId]`
+  - **checkout** – `POST /api/checkout`
+  - **orders** – `GET /api/orders`, `GET /api/orders/[id]`
+  - **health** – optional `GET /api/health` (not in spec)
 
 ## Usage in tests
 
-1. Use the **API fixture** in `tests/api/fixtures/api.ts`: inject `api` and call `api.health.getHealth(api.request)`, `api.products.getProducts(api.request)`, etc.
-2. Set **`.env`** from `.env.example`: at least `API_BASE_URL`; optionally `API_TOKEN` for protected routes.
-3. Run API tests: `npm run test:api`.
+1. Use the **API fixture** in `tests/api/fixtures/api.ts`: inject `api` and call e.g. `api.products.getProducts()`, `api.cart.getCart()`, `api.auth.signup({ email, password, name })`.
+2. Set **`.env`**: `API_BASE_URL=http://localhost:3000` (no `/api`).
+3. **Auth**: Endpoints under cart, checkout, orders require a session. Use Playwright storage state from a browser login, or a test-only auth mechanism if available.
+4. Run API tests: `npm run test:api`.
 
 ## Adding a new resource
 
-1. Add a new file under `api/resources/`, e.g. `cart.ts`.
-2. Implement functions that accept `ApiRequestContext` (from `../client`) and return `request.get/post/put/delete(...)`.
-3. Re-export in `api/resources/index.ts` and add the module to the `api` fixture in `tests/api/fixtures/api.ts`.
-
-This keeps tests thin and reusable across suites.
+1. Add a file under `api/resources/` (paths use `API_PREFIX`).
+2. Implement functions taking `ApiRequestContext` and returning `request.get/post/...`.
+3. Re-export in `api/resources/index.ts` and add to the fixture in `tests/api/fixtures/api.ts`.

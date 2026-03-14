@@ -1,21 +1,19 @@
 /**
- * Product catalog API. Centralize product-related endpoints here so tests
- * stay DRY and endpoint changes are in one place. Extend with create/update/delete
- * when your API supports them.
+ * Products API. Public, read-only. Spec: GET /api/products, GET /api/products/[id].
  */
 import type { ApiRequestContext } from '../client';
-import type { Product } from '../types';
+import type { Product, ProductsListResponse } from '../types';
+import { API_PREFIX } from '../constants';
 
-const PRODUCTS_PATH = '/products';
+const PRODUCTS_PATH = `${API_PREFIX}/products`;
 const productByIdPath = (id: string) => `${PRODUCTS_PATH}/${id}`;
 
 /**
- * GET /products - list products. Optional query params depend on your API
- * (e.g. page, limit, category). Extend the params type as needed.
+ * GET /api/products. Query: limit (default 50), offset (default 0).
  */
 export async function getProducts(
   request: ApiRequestContext,
-  params?: { page?: number; limit?: number; category?: string }
+  params?: { limit?: number; offset?: number }
 ) {
   const searchParams = params
     ? new URLSearchParams(
@@ -26,24 +24,41 @@ export async function getProducts(
   return request.get(url);
 }
 
-/**
- * GET /products/:id - fetch a single product by ID.
- */
+/** GET /api/products/[id] */
 export async function getProductById(request: ApiRequestContext, id: string) {
   return request.get(productByIdPath(id));
 }
 
 /**
- * Helper: parse products list from response. Use in tests for typed assertions.
- * Adjust to your API response shape (e.g. data.products, data.items).
+ * Parse GET /api/products response to typed list. Returns empty array on non-OK or non-JSON.
  */
 export async function parseProductsList(
   response: Awaited<ReturnType<typeof getProducts>>
 ): Promise<Product[]> {
   if (!response.ok()) return [];
-  const body = await response.json();
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    return [];
+  }
+  if (body && typeof body === 'object' && body !== null && 'products' in body) {
+    const list = (body as ProductsListResponse).products;
+    return Array.isArray(list) ? list : [];
+  }
   if (Array.isArray(body)) return body as Product[];
-  if (body?.data && Array.isArray(body.data)) return body.data as Product[];
-  if (body?.items && Array.isArray(body.items)) return body.items as Product[];
   return [];
+}
+
+/** Parse GET /api/products response to get total count. */
+export async function parseProductsTotal(
+  response: Awaited<ReturnType<typeof getProducts>>
+): Promise<number> {
+  if (!response.ok()) return 0;
+  try {
+    const body = (await response.json()) as ProductsListResponse;
+    return typeof body.total === 'number' ? body.total : 0;
+  } catch {
+    return 0;
+  }
 }

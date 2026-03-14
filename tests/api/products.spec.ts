@@ -39,5 +39,9 @@ test.describe('Products API', () => {
     const product = await oneResponse.json();
     expect(product).toHaveProperty('id');
     expect(product.id).toBe(firstId);
+    // Spec: product has name, description, priceCents, imageUrl
+    expect(product).toHaveProperty('name');
+    expect(product).toHaveProperty('priceCents');
+    expect(Number.isInteger((product as { priceCents?: number }).priceCents)).toBeTruthy();
   });
 });

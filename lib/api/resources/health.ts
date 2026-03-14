@@ -1,14 +1,12 @@
 /**
- * Health and readiness endpoints. Reuse these in smoke tests and CI checks.
+ * Health/readiness (optional). Not in the main API spec; use if your app exposes it.
  */
 import type { ApiRequestContext } from '../client';
+import { API_PREFIX } from '../constants';
 
-const HEALTH_PATH = '/health';
+const HEALTH_PATH = `${API_PREFIX}/health`;
 
-/**
- * GET /health (or your app's health path). Adjust HEALTH_PATH if your API uses
- * a different route (e.g. /api/health, /ready).
- */
+/** GET /api/health */
 export async function getHealth(request: ApiRequestContext) {
   return request.get(HEALTH_PATH);
 }

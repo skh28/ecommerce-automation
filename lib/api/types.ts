@@ -1,37 +1,93 @@
 /**
- * Shared types for the ecommerce API. Extend these to match your API contracts
- * so responses are typed and reusable across tests and helpers.
+ * Types aligned with the ecommerce API spec. IDs are CUIDs; money in cents; dates ISO 8601.
+ * @see API spec in project docs
  */
 
-/** Generic success envelope used by many REST APIs. Adjust to your API shape. */
-export interface ApiSuccess<T = unknown> {
-  data?: T;
-  message?: string;
-  success?: boolean;
-}
-
-/** Generic error envelope for consistent error handling in tests. */
+/** Error body: { "error": "Message" } or { "error": "...", "code": "SOME_CODE" } */
 export interface ApiError {
-  message?: string;
-  error?: string;
-  code?: string | number;
-  statusCode?: number;
+  error: string;
+  code?: string;
 }
 
-/** Paginated list response. Align field names with your API (e.g. totalCount, items). */
-export interface PaginatedResponse<T> {
-  items: T[];
-  total?: number;
-  page?: number;
-  pageSize?: number;
-  hasMore?: boolean;
-}
-
-/** Placeholder product type. Replace with your actual product schema. */
+/** Product (list and by-id). Money in cents. */
 export interface Product {
   id: string;
   name: string;
-  price?: number;
-  slug?: string;
-  [key: string]: unknown;
+  description: string;
+  priceCents: number;
+  imageUrl: string;
+}
+
+/** GET /api/products response */
+export interface ProductsListResponse {
+  products: Product[];
+  total: number;
+}
+
+/** Cart line item */
+export interface CartItem {
+  id: string;
+  productId: string;
+  productName: string;
+  priceCents: number;
+  quantity: number;
+  imageUrl: string;
+}
+
+/** GET /api/cart response (and POST/PATCH/DELETE cart responses) */
+export interface CartResponse {
+  items: CartItem[];
+  totalCents: number;
+}
+
+/** POST /api/auth/signup request */
+export interface SignupRequest {
+  email: string;
+  password: string;
+  name?: string;
+}
+
+/** POST /api/auth/signup success response */
+export interface SignupResponse {
+  user: { id: string; email: string; name: string | null };
+}
+
+/** Order line item (in checkout and order detail) */
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  priceCents: number;
+}
+
+/** POST /api/checkout response */
+export interface CheckoutResponse {
+  order: {
+    id: string;
+    totalCents: number;
+    createdAt: string;
+    items: OrderItem[];
+  };
+}
+
+/** Order summary in list */
+export interface OrderSummary {
+  id: string;
+  totalCents: number;
+  createdAt: string;
+  itemCount: number;
+}
+
+/** GET /api/orders response */
+export interface OrdersListResponse {
+  orders: OrderSummary[];
+  total: number;
+}
+
+/** GET /api/orders/[id] response */
+export interface OrderDetailResponse {
+  id: string;
+  totalCents: number;
+  createdAt: string;
+  items: OrderItem[];
 }
