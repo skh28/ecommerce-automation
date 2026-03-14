@@ -13,17 +13,25 @@ test.describe('Products API', () => {
     }
   });
 
-  test('GET /products returns a list', async ({ api }) => {
+  test('GET /api/products returns a list', async ({ api }) => {
     const response = await api.products.getProducts();
 
     expect(response.ok(), 'Products list should return 2xx').toBeTruthy();
 
     const list = await api.products.parseProductsList(response);
-    // Relaxed: some APIs return empty list; strict checks can require list.length > 0
     expect(Array.isArray(list)).toBeTruthy();
   });
 
-  test('GET /products/:id returns a single product when id exists', async ({ api }) => {
+  test('GET /api/products accepts limit and offset', async ({ api }) => {
+    const response = await api.products.getProducts({ limit: 5, offset: 0 });
+    expect(response.ok()).toBeTruthy();
+    const list = await api.products.parseProductsList(response);
+    const total = await api.products.parseProductsTotal(response);
+    expect(Array.isArray(list)).toBeTruthy();
+    expect(total).toBeGreaterThanOrEqual(0);
+  });
+
+  test('GET /api/products/[id] returns a single product when id exists', async ({ api }) => {
     const listResponse = await api.products.getProducts();
     if (!listResponse.ok()) {
       test.skip(true, 'Products list failed; cannot pick an id');
@@ -43,5 +51,12 @@ test.describe('Products API', () => {
     expect(product).toHaveProperty('name');
     expect(product).toHaveProperty('priceCents');
     expect(Number.isInteger((product as { priceCents?: number }).priceCents)).toBeTruthy();
+  });
+
+  test('GET /api/products/[id] returns 404 for unknown id', async ({ api }) => {
+    const response = await api.products.getProductById('clxxnonexistent000000000000');
+    expect(response.status()).toBe(404);
+    const body = await response.json().catch(() => ({}));
+    expect(body).toHaveProperty('error');
   });
 });
