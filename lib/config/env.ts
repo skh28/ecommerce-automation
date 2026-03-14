@@ -12,6 +12,9 @@ dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 /** Resolved API base URL (no trailing slash). Prefer API_BASE_URL, fallback to BASE_URL. */
 export const apiBaseUrl = (process.env.API_BASE_URL || process.env.BASE_URL || '').replace(/\/$/, '');
 
+/** Base URL for UI (browser) tests. Defaults to API base; set UI_BASE_URL if frontend is different. */
+export const uiBaseUrl = (process.env.UI_BASE_URL || apiBaseUrl || 'http://localhost:3000').replace(/\/$/, '');
+
 /** Optional bearer token for authenticated endpoints. Set API_TOKEN in .env for protected APIs. */
 export const apiToken = process.env.API_TOKEN || '';
 

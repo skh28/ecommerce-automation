@@ -45,8 +45,9 @@ cp .env.example .env
 
 | Script | Command | Description |
 |--------|--------|--------------|
-| `npm test` | `playwright test` | Run all tests (API + browser). |
+| `npm test` | `playwright test` | Run all tests (API + UI). |
 | `npm run test:api` | `playwright test tests/api` | Run only API tests (no browser). |
+| `npm run test:e2e` | `playwright test tests/ui` | Run only UI (browser) tests. |
 | `npm run test:ui` | `playwright test --ui` | Open Playwright UI to run and debug tests. |
 
 ---
@@ -69,7 +70,7 @@ cp .env.example .env
 │   │   └── resources/      # Endpoint helpers (auth, products, cart, checkout, orders, health)
 │   └── README.md           # Detailed lib/ and resource usage
 ├── tests/
-│   ├── api/
+│   ├── api/                # API tests (no browser)
 │   │   ├── fixtures/
 │   │   │   └── api.ts      # Fixture: injects api (request + resource helpers)
 │   │   ├── health.spec.ts
@@ -78,7 +79,8 @@ cp .env.example .env
 │   │   ├── cart.spec.ts
 │   │   ├── checkout.spec.ts
 │   │   └── orders.spec.ts
-│   └── example.spec.ts     # Default Playwright example (browser)
+│   └── ui/                 # UI (E2E) tests (Chromium)
+│       └── home.spec.ts    # Example: home page, navigation
 └── README.md               # This file
 ```
 
@@ -95,6 +97,33 @@ See [lib/README.md](lib/README.md) for adding resources and using the fixture.
 
 ---
 
+## UI (E2E) tests
+
+Browser tests live under **`tests/ui/`** and run in Chromium. They use **baseURL** from `.env`: `UI_BASE_URL` if set, otherwise `API_BASE_URL` (same origin as the API is typical).
+
+### How to create UI tests
+
+1. **Add a spec file** under `tests/ui/`, e.g. `tests/ui/cart.spec.ts`.
+2. **Use `page`** (and optional fixtures). Prefer [role-based selectors](https://playwright.dev/docs/locators#locate-by-role): `page.getByRole('link', { name: 'Cart' })`, `page.getByRole('button', { name: 'Add to cart' })`.
+3. **Use relative URLs** so baseURL is applied: `await page.goto('/')`, `await page.goto('/products')`.
+4. **Run** with `npm run test:e2e` or open `npm run test:ui` to run/debug in the Playwright UI.
+
+Example:
+
+```ts
+import { test, expect } from '@playwright/test';
+
+test('add to cart from product page', async ({ page }) => {
+  await page.goto('/products');
+  await page.getByRole('button', { name: /add to cart/i }).first().click();
+  await expect(page.getByRole('link', { name: /cart/i })).toBeVisible();
+});
+```
+
+For flows that require login, use [storage state](https://playwright.dev/docs/auth): log in once (in a setup or global setup), save storage state to a file, then in config or a fixture use `storageState: 'path/to/state.json'` so tests start already authenticated.
+
+---
+
 ## CI
 
 A workflow runs Playwright on push/PR (see `.github/workflows/playwright.yml`). To run API tests in CI, set `API_BASE_URL` in the workflow (e.g. to a deployed API or a URL from a prior job that starts the app).
@@ -105,4 +134,4 @@ A workflow runs Playwright on push/PR (see `.github/workflows/playwright.yml`). 
 
 - **Authenticated flows** – Use storage state from a browser login to test cart → checkout → orders with a real session.
 - **Smoke subset** – Tag a few tests (e.g. health + products + signup) and add `npm run test:api:smoke` for fast checks.
-- **E2E UI** – Add Playwright UI tests for the storefront (browse, cart, checkout) using the same or a separate base URL.
+- **E2E UI** – Add more specs under `tests/ui/` (cart, checkout, auth) and use storage state for logged-in flows.

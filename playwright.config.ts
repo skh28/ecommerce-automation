@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { apiBaseUrl, apiToken } from './lib/config/env';
+import { apiBaseUrl, apiToken, uiBaseUrl } from './lib/config/env';
 
 /**
  * Playwright config for ecommerce automation. API base URL and auth come from
@@ -29,11 +29,11 @@ export default defineConfig({
       testMatch: /.*\/api\/.*\.spec\.ts/,
       use: { baseURL: apiBaseUrl || 'http://localhost' },
     },
-    // Browser tests (exclude API tests; those run only in the api project)
+    // UI (browser) tests – exclude API tests; use UI base URL from .env
     {
       name: 'chromium',
-      testIgnore: /\/api\//,
-      use: { ...devices['Desktop Chrome'] },
+      testMatch: /.*\/ui\/.*\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: uiBaseUrl },
     },
 
 //    {
