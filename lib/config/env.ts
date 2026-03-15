@@ -18,7 +18,17 @@ export const uiBaseUrl = (process.env.UI_BASE_URL || apiBaseUrl || 'http://local
 /** Optional bearer token for authenticated endpoints. Set API_TOKEN in .env for protected APIs. */
 export const apiToken = process.env.API_TOKEN || '';
 
+/** Test user for E2E login flows. Set in .env; do not commit real credentials. */
+export const testUserEmail = process.env.TEST_USER_EMAIL || '';
+export const testUserPassword = process.env.TEST_USER_PASSWORD || '';
+export const testUserDisplayName = process.env.TEST_USER_DISPLAY_NAME || '';
+
 /** Whether the API is configured (required for API test runs). */
 export function isApiConfigured(): boolean {
   return Boolean(apiBaseUrl);
+}
+
+/** Whether test user credentials are configured (for login E2E tests). */
+export function isTestUserConfigured(): boolean {
+  return Boolean(testUserEmail && testUserPassword);
 }
