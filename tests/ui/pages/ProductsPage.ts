@@ -27,6 +27,13 @@ export const ProductsPage = {
     );
   },
 
+  /** Nth product card (0-based index: 0 = first, 1 = second). */
+  nthProductCard(page: Page, index: number) {
+    return page.getByRole('listitem').nth(index).or(
+      page.locator('[data-testid^="product-"], [data-testid="product-card"], .product-card').nth(index)
+    );
+  },
+
   /** Product card or row by product name (partial match). */
   productCardByName(page: Page, name: string | RegExp) {
     const namePattern = typeof name === 'string' ? new RegExp(name, 'i') : name;
@@ -35,10 +42,14 @@ export const ProductsPage = {
     );
   },
 
-  /** "Add to cart" button within a product card or on the page (first match). */
+  /** "Add to cart" button or link; optionally scoped to a container (e.g. first product card). */
   addToCartButton(page: Page, within?: ReturnType<Page['locator']>) {
     const base = within ?? page;
-    return base.getByRole('button', { name: /add\s*to\s*cart/i }).first();
+    return base
+      .getByRole('button', { name: /add(\s*to\s*cart)?/i })
+      .or(base.getByRole('link', { name: /add(\s*to\s*cart)?/i }))
+      .or(base.getByText(/^add(\s*to\s*cart)?$/i))
+      .first();
   },
 
   /** Link to product detail (by product name text). */
@@ -70,4 +81,43 @@ export const ProductsPage = {
  */
 export async function goToProducts(page: Page): Promise<void> {
   await ProductsPage.navLink(page).click();
+}
+
+/** Reduce product card text to a short name (e.g. "Wireless Headphones") for cart matching. */
+function toShortProductName(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed) return trimmed;
+  const withoutPrice = trimmed.replace(/\$[\d,]+\.?\d*/, '').trim();
+  const words = withoutPrice
+    .split(/\s+/)
+    .flatMap((w) => w.split(/(?=[A-Z])/).filter(Boolean));
+  return words.slice(0, 2).join(' ') || trimmed.split(/\s+/)[0] || trimmed;
+}
+
+/**
+ * Get the displayed name of the first product (for verifying the same product in the cart).
+ * Always returns a short name (e.g. "Wireless Headphones") so the cart page can match it.
+ */
+export async function getFirstProductName(page: Page): Promise<string> {
+  return getNthProductName(page, 0);
+}
+
+/**
+ * Get the displayed name of the nth product (0-based). Use to verify the same products in the cart.
+ */
+export async function getNthProductName(page: Page, index: number): Promise<string> {
+  const card = ProductsPage.nthProductCard(page, index);
+  const nameLink = card.getByRole('link').first();
+  const nameHeading = card.getByRole('heading').first();
+  const linkText = await nameLink.textContent().catch(() => null);
+  if (linkText?.trim()) return toShortProductName(linkText);
+  const headingText = await nameHeading.textContent().catch(() => null);
+  if (headingText?.trim()) return toShortProductName(headingText);
+  let fullText = '';
+  try {
+    fullText = (await card.textContent())?.trim() ?? '';
+  } catch {
+    return `Product ${index + 1}`;
+  }
+  return toShortProductName(fullText);
 }

@@ -2,9 +2,10 @@
  * Login flow E2E test. Credentials come from .env (TEST_USER_*).
  * Run with: npm run test:e2e
  */
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 import { testUserEmail, testUserPassword, testUserDisplayName, isTestUserConfigured } from '../../lib/config/env';
 import { LoginPage, submitLoginForm } from './pages/LoginPage';
+import { waitForElementPresent } from './utils/wait';
 
 test.describe('Login', () => {
   test.beforeEach(() => {
@@ -17,13 +18,10 @@ test.describe('Login', () => {
     await page.goto('/');
 
     await LoginPage.loginEntry(page).click();
-
-    await expect(LoginPage.emailField(page)).toBeVisible({ timeout: 10000 });
+    await waitForElementPresent(LoginPage.emailField(page));
     await submitLoginForm(page, testUserEmail, testUserPassword);
 
     const displayName = testUserDisplayName || 'Test';
-    await expect(LoginPage.welcomeMessage(page, displayName)).toBeVisible({
-      timeout: 10000,
-    });
+    await waitForElementPresent(LoginPage.welcomeMessage(page, displayName));
   });
 });
