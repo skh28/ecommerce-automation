@@ -1,6 +1,6 @@
 /**
  * Shared locators and helpers for the cart UI.
- * Reuse in any test that opens the cart, changes quantity, removes items, or goes to checkout.
+ * Matches <main> cart page: <ul class="divide-y…"><li>…</li></ul>, quantity <select>, "Proceed to checkout".
  */
 import type { Page } from '@playwright/test';
 
@@ -13,68 +13,78 @@ export const CartPage = {
       .first();
   },
 
-  /** Cart container or list of items. */
+  /** Cart page root (scoped so listitems are only cart lines, not site nav). */
+  cartMain(page: Page) {
+    return page.getByRole('main');
+  },
+
+  /**
+   * Cart line rows: <main><ul class="divide-y …"><li class="p-4 flex …">…</li></ul>
+   */
+  cartLineItems(page: Page) {
+    return CartPage.cartMain(page).getByRole('listitem');
+  },
+
+  /** Cart container (main content on /cart). */
   cartContainer(page: Page) {
-    return page
-      .getByRole('region', { name: /cart/i })
-      .or(page.locator('[data-testid="cart"], [data-testid="cart-page"], .cart, [class*="cart"]').first());
+    return CartPage.cartMain(page);
   },
 
-  /** List of cart line items (rows). */
+  /** The <ul> that wraps line items. */
   cartItemsList(page: Page) {
-    return page
-      .getByRole('list', { name: /cart\s*items?|items?/i })
-      .or(page.locator('[data-testid="cart-items"], .cart-items, [class*="cartItems"]').first());
+    return CartPage.cartMain(page).locator('ul.divide-y').first();
   },
 
-  /** First cart item row. */
+  /** First cart line item. */
   firstCartItem(page: Page) {
-    return page.getByRole('listitem').first().or(
-      page.locator('[data-testid^="cart-item"], .cart-item, [class*="cartItem"]').first()
-    );
+    return CartPage.cartLineItems(page).first();
   },
 
-  /** Nth cart item row (0-based: 0 = first, 1 = second). */
+  /** Nth cart line item (0-based). */
   nthCartItem(page: Page, index: number) {
-    return page.getByRole('listitem').nth(index).or(
-      page.locator('[data-testid^="cart-item"], .cart-item, [class*="cartItem"]').nth(index)
-    );
+    return CartPage.cartLineItems(page).nth(index);
   },
 
-  /** Cart item row that contains the given product name. */
+  /** Line item that shows the given product name (matches title link / text in the row). */
   cartItemByName(page: Page, name: string | RegExp) {
-    const namePattern = typeof name === 'string' ? new RegExp(name, 'i') : name;
-    return page.getByRole('listitem').filter({ has: page.getByText(namePattern) }).first().or(
-      page.locator('[data-testid^="cart-item"], .cart-item').filter({ has: page.getByText(namePattern) }).first()
-    );
+    const pattern = typeof name === 'string' ? new RegExp(name, 'i') : name;
+    return CartPage.cartLineItems(page).filter({ hasText: pattern }).first();
   },
 
-  /** Quantity input within a cart item (or first on page). */
+  /** Quantity control: <select> labeled "Quantity for {Product}". */
   quantityInput(page: Page, within?: ReturnType<Page['locator']>) {
     const base = within ?? page;
-    return base.getByRole('spinbutton', { name: /quantity/i }).or(
-      base.locator('input[type="number"]').first()
-    ).first();
+    return base
+      .getByRole('combobox', { name: /quantity for/i })
+      .or(base.locator('select').first())
+      .first();
   },
 
-  /** Remove / delete button for a cart item (or first on page). */
+  /** Remove line button (aria-label "Remove … from cart"). */
   removeButton(page: Page, within?: ReturnType<Page['locator']>) {
     const base = within ?? page;
-    return base.getByRole('button', { name: /remove|delete|trash/i }).first();
+    return base.getByRole('button', { name: /remove/i }).first();
   },
 
-  /** Cart total / subtotal (e.g. "Total: $99.99" or element with price). */
+  /**
+   * Total row: <div class="text-right"><span>Total: </span><span>$…</span></div>
+   */
   total(page: Page) {
-    return page.getByText(/total[:\s]*\$?[\d,]+\.?\d*/i).first().or(
-      page.locator('[data-testid="cart-total"], .cart-total, [class*="total"]').first()
-    );
+    return CartPage.cartMain(page)
+      .locator('div.text-right')
+      .filter({ hasText: /total/i })
+      .first();
   },
 
-  /** Checkout button. */
+  /**
+   * Cart CTA after line items: <a href="/checkout" class="… bg-blue-600 …">Proceed to checkout</a>
+   * Scoped to cart <main> so a generic "Checkout" nav link is not clicked by mistake.
+   */
   checkoutButton(page: Page) {
-    return page.getByRole('link', { name: /checkout/i }).or(
-      page.getByRole('button', { name: /checkout/i })
-    ).first();
+    return CartPage.cartMain(page)
+      .locator('a[href="/checkout"]')
+      .filter({ hasText: /^\s*Proceed to checkout\s*$/i })
+      .or(CartPage.cartMain(page).getByRole('link', { name: /Proceed to checkout/i }));
   },
 
   /** Empty cart message (e.g. "Your cart is empty"). */

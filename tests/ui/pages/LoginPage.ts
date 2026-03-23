@@ -3,6 +3,7 @@
  * to open the login form, fill credentials, or assert on the welcome message.
  */
 import type { Page } from '@playwright/test';
+import { waitForElementPresent } from '../utils/wait';
 
 export const LoginPage = {
   /** Link or button that opens the login form (header or center). */
@@ -45,4 +46,14 @@ export async function submitLoginForm(
   await LoginPage.emailField(page).fill(email);
   await LoginPage.passwordField(page).fill(password);
   await LoginPage.submitButton(page).click();
+}
+
+/**
+ * If the page is on the login screen (e.g. redirected due to lost session), log in and wait for navigation away from login. No-op if URL does not contain /login.
+ */
+export async function ensureLoggedIn(page: Page, email: string, password: string): Promise<void> {
+  if (!page.url().includes('/login')) return;
+  await waitForElementPresent(LoginPage.emailField(page));
+  await submitLoginForm(page, email, password);
+  await page.waitForURL((u) => !u.toString().includes('/login'), { timeout: 15000 });
 }

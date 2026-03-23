@@ -13,42 +13,44 @@ export const ProductsPage = {
       .first();
   },
 
+  /**
+   * Products grid under <main>: <ul class="grid …"><li>…</li></ul>
+   * Keeps listitems scoped to the products page (avoids other lists on the layout).
+   */
+  productCards(page: Page) {
+    return page.getByRole('main').getByRole('listitem');
+  },
+
   /** Container for the products list (optional; use to wait until list is loaded). */
   productsList(page: Page) {
-    return page.getByRole('list', { name: /products?|catalog/i }).or(
-      page.locator('[data-testid="product-list"], [data-testid="products"], .products, [class*="productList"]').first()
-    );
+    return page.getByRole('main').locator('ul.grid').first();
   },
 
   /** First product card / item in the list. */
   firstProductCard(page: Page) {
-    return page.getByRole('listitem').first().or(
-      page.locator('[data-testid^="product-"], [data-testid="product-card"], .product-card').first()
-    );
+    return ProductsPage.productCards(page).first();
   },
 
   /** Nth product card (0-based index: 0 = first, 1 = second). */
   nthProductCard(page: Page, index: number) {
-    return page.getByRole('listitem').nth(index).or(
-      page.locator('[data-testid^="product-"], [data-testid="product-card"], .product-card').nth(index)
-    );
+    return ProductsPage.productCards(page).nth(index);
   },
 
-  /** Product card or row by product name (partial match). */
+  /** Product card or row by product name (partial match; matches <h2> title in card). */
   productCardByName(page: Page, name: string | RegExp) {
     const namePattern = typeof name === 'string' ? new RegExp(name, 'i') : name;
-    return page.getByRole('listitem').filter({ has: page.getByText(namePattern) }).first().or(
-      page.locator('[data-testid^="product-"], .product-card').filter({ has: page.getByText(namePattern) }).first()
-    );
+    return ProductsPage.productCards(page).filter({ has: page.getByText(namePattern) }).first();
   },
 
-  /** "Add to cart" button or link; optionally scoped to a container (e.g. first product card). */
+  /**
+   * "Add to cart" button; scoped to a product card when `within` is passed.
+   * Matches visible text "Add to cart" and aria-label "Add {Product} to cart".
+   */
   addToCartButton(page: Page, within?: ReturnType<Page['locator']>) {
     const base = within ?? page;
     return base
-      .getByRole('button', { name: /add(\s*to\s*cart)?/i })
-      .or(base.getByRole('link', { name: /add(\s*to\s*cart)?/i }))
-      .or(base.getByText(/^add(\s*to\s*cart)?$/i))
+      .getByRole('button', { name: /add.*to\s*cart/i })
+      .or(base.getByRole('link', { name: /add.*to\s*cart/i }))
       .first();
   },
 
@@ -107,6 +109,8 @@ export async function getFirstProductName(page: Page): Promise<string> {
  */
 export async function getNthProductName(page: Page, index: number): Promise<string> {
   const card = ProductsPage.nthProductCard(page, index);
+  const title = await card.getByRole('heading', { level: 2 }).textContent().catch(() => null);
+  if (title?.trim()) return title.trim();
   const nameLink = card.getByRole('link').first();
   const nameHeading = card.getByRole('heading').first();
   const linkText = await nameLink.textContent().catch(() => null);
