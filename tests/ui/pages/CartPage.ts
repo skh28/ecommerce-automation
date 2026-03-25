@@ -13,6 +13,17 @@ export const CartPage = {
       .first();
   },
 
+  /**
+   * Header cart link with a specific item count, e.g. <a href="/cart">Cart (1)</a>
+   */
+  navLinkWithCount(page: Page, count: number) {
+    return page
+      .locator('a[href="/cart"]')
+      .filter({ hasText: new RegExp(`Cart\\s*\\(${count}\\)`) })
+      .or(page.getByRole('link', { name: new RegExp(`^\\s*Cart\\s*\\(${count}\\)\\s*$`, 'i') }))
+      .first();
+  },
+
   /** Cart page root (scoped so listitems are only cart lines, not site nav). */
   cartMain(page: Page) {
     return page.getByRole('main');

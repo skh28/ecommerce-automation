@@ -22,6 +22,12 @@ test.describe('Login', () => {
     await submitLoginForm(page, testUserEmail, testUserPassword);
 
     const displayName = testUserDisplayName || 'Test';
-    await waitForElementPresent(LoginPage.welcomeMessage(page, displayName));
+    try {
+      await waitForElementPresent(LoginPage.welcomeMessage(page, displayName));
+      console.log('[Login] Login succeeded');
+    } catch (error) {
+      console.log('[Login] Login failed (welcome message not visible)');
+      throw error;
+    }
   });
 });
